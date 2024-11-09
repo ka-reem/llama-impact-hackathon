@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'com.yourgame'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Add dependencies here if needed
+}
+
+application {
+    mainClass = 'game.GameLauncher' // Update to match the new package structure
+    // mainClass = 'main.game.GameLauncher'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'game.GameLauncher' // Update to match the new package structure
+        // attributes 'Main-Class': 'main.game.GameLauncher'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
