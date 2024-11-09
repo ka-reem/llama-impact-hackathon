@@ -13,7 +13,10 @@ repositories {
 }
 
 dependencies {
-    // Add dependencies here if needed
+    // HTTP Client for Groq API calls
+    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+    // JSON processing 
+    implementation 'com.google.code.gson:gson:2.10.1'
 }
 
 application {
@@ -26,7 +29,11 @@ jar {
         attributes 'Main-Class': 'game.GameLauncher' // Update to match the new package structure
         // attributes 'Main-Class': 'main.game.GameLauncher'
     }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // fix gradle build error related to duplicate jar files
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
+
+
+

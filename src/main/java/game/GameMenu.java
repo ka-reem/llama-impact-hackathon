@@ -52,7 +52,7 @@ public class GameMenu extends JFrame {
     }
 
     private void openOptions() {
-        System.out.println("Opening options"); // debugging
+        System.out.println("Opening options"); // Debugging
     }
 
     public void display() {

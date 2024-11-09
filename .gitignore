@@ -22,3 +22,9 @@ Thumbs.db
 
 # Application specific
 *.save
+
+# Notes
+ideas.txt
+
+# API key
+src/main/resources/config.properties
