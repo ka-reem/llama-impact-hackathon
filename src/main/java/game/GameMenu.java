@@ -34,7 +34,20 @@ public class GameMenu extends JFrame {
     }
 
     private void startGame() {
-        System.out.println("Starting game"); // debugging
+        // System.out.println("Starting game"); // debugging
+        JFrame gameFrame = new JFrame("Game Title");
+        // Game game = new Game(); // when we make a game.java
+        JPanel gamePanel = new JPanel();
+        gamePanel.setPreferredSize(new Dimension(400,400));
+        gamePanel.setBackground(Color.GRAY);
+
+        gameFrame.add(gamePanel);
+        gameFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        gameFrame.pack();
+        gameFrame.setLocationRelativeTo(null); // center window
+        gameFrame.setVisible(true);
+
+        this.dispose(); // removes menu
     }
 
     private void openOptions() {
