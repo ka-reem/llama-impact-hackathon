@@ -12,9 +12,9 @@ import java.util.Properties;
 import java.io.InputStream;
 import java.io.IOException;
 
-public class Game extends JPanel {
+public class Game extends JFrame {
+    private GameWorld gameWorld;
     private ChatPanel chatPanel;
-    private JPanel gamePanel;
     private boolean isChatVisible = false;
 
     private String loadApiKey() {
@@ -33,20 +33,21 @@ public class Game extends JPanel {
     }
     
     public Game() {
-        setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(800, 600));
-
-        // Create main game panel
-        gamePanel = new JPanel();
-        gamePanel.setBackground(Color.GRAY); // Temporary background
-        add(gamePanel, BorderLayout.CENTER);
-
-        // Create chat panel
-        chatPanel = new ChatPanel();
-        chatPanel.setVisible(false);
-        add(chatPanel, BorderLayout.EAST);
-
-        // Add toolbar with buttons
+        // Set window properties
+        this.setTitle("Tank Game");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        // Added keyboard input
+        this.setFocusable(true);
+        this.requestFocus();
+        
+        // Create and setup GameWorld
+        gameWorld = new GameWorld(this);
+        gameWorld.setPreferredSize(new Dimension(GameConstants.GAME_SCREEN_WIDTH, 
+                                               GameConstants.GAME_SCREEN_HEIGHT));
+        gameWorld.InitializeGame();
+        
+        // Create toolbar
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton backButton = new JButton("Back to Menu");
         JButton toggleChatButton = new JButton("Toggle Chat");
@@ -56,7 +57,26 @@ public class Game extends JPanel {
         
         toolbar.add(backButton);
         toolbar.add(toggleChatButton);
-        add(toolbar, BorderLayout.NORTH);
+        
+        // Layout setup
+        this.setLayout(new BorderLayout());
+        this.add(toolbar, BorderLayout.NORTH);
+        this.add(gameWorld, BorderLayout.CENTER);
+        
+        // Create and add chat panel
+        chatPanel = new ChatPanel();
+        chatPanel.setVisible(false);
+        chatPanel.setPreferredSize(new Dimension(200, GameConstants.GAME_SCREEN_HEIGHT));
+        this.add(chatPanel, BorderLayout.EAST);
+        
+        // Pack and center the window
+        this.pack();
+        this.setLocationRelativeTo(null);
+        this.setResizable(false);
+        
+        // Start the game thread
+        Thread thread = new Thread(gameWorld);
+        thread.start();
     }
 
     private void toggleChat() {
@@ -66,12 +86,23 @@ public class Game extends JPanel {
         repaint();
     }
 
-    private void returnToMenu() {
-        Window window = SwingUtilities.getWindowAncestor(this);
-        if (window != null) {
-            window.dispose();
-            GameMenu menu = new GameMenu();
-            menu.display();
+    // Quest like interaction
+
+    public void showNPCChat(String message) {
+        if (!isChatVisible) {
+            toggleChat();
         }
+        chatPanel.addMessage("NPC", message);
+    }
+
+    private void returnToMenu() {
+        this.dispose();  
+        GameMenu menu = new GameMenu();
+        menu.display();
+    }
+
+    public static void main(String[] args) {
+        Game game = new Game();
+        game.setVisible(true);
     }
 }

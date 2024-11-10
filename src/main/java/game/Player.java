@@ -38,6 +38,9 @@ public class Player{
 
     void setY(float y) { this. y = y;}
 
+    public float getX() { return x; }
+    public float getY() { return y; }
+
     void toggleUpPressed() {
         this.UpPressed = true;
     }
@@ -116,17 +119,17 @@ public class Player{
 
 
     private void checkBorder() {
-        if (x < 30) {
-            x = 30;
+        if (x < 0) {
+            x = 0;
         }
-        if (x >= GameConstants.GAME_SCREEN_WIDTH - 88) {
-            x = GameConstants.GAME_SCREEN_WIDTH - 88;
+        if (x >= GameConstants.GAME_SCREEN_WIDTH - this.img.getWidth()) {
+            x = GameConstants.GAME_SCREEN_WIDTH - this.img.getWidth();
         }
-        if (y < 40) {
-            y = 40;
+        if (y < 0) {
+            y = 0;
         }
-        if (y >= GameConstants.GAME_SCREEN_HEIGHT - 80) {
-            y = GameConstants.GAME_SCREEN_HEIGHT - 80;
+        if (y >= GameConstants.GAME_SCREEN_HEIGHT - this.img.getHeight()) {
+            y = GameConstants.GAME_SCREEN_HEIGHT - this.img.getHeight();
         }
     }
 
@@ -137,13 +140,15 @@ public class Player{
 
 
     void drawImage(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        
+        // Draw debug box first
+        g2d.setColor(Color.RED);
+        g2d.drawRect((int)x, (int)y, this.img.getWidth(), this.img.getHeight());
+        
+        // Draw the "tank" image
         AffineTransform rotation = AffineTransform.getTranslateInstance(x, y);
         rotation.rotate(Math.toRadians(angle), this.img.getWidth() / 2.0, this.img.getHeight() / 2.0);
-        Graphics2D g2d = (Graphics2D) g;
         g2d.drawImage(this.img, rotation, null);
-        g2d.setColor(Color.RED);
-        //g2d.rotate(Math.toRadians(angle), bounds.x + bounds.width/2, bounds.y + bounds.height/2);
-        g2d.drawRect((int)x,(int)y,this.img.getWidth(), this.img.getHeight());
-
     }
 }

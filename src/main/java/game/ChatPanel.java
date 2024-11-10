@@ -1,9 +1,9 @@
-
 package game;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public class ChatPanel extends JPanel {
@@ -11,6 +11,7 @@ public class ChatPanel extends JPanel {
     private JTextArea chatArea;
     private JTextField playerInput;
     private String gameContext;
+    private ArrayList<String> messages;
 
     public ChatPanel() {
         String apiKey = loadApiKey();
@@ -19,6 +20,7 @@ public class ChatPanel extends JPanel {
         
         setLayout(new BorderLayout(10, 10));
         setPreferredSize(new Dimension(300, 400));
+        messages = new ArrayList<>();
         
         // Chat display area
         chatArea = new JTextArea();
@@ -87,6 +89,13 @@ public class ChatPanel extends JPanel {
 
     private void appendToChat(String text) {
         chatArea.append(text + "\n");
+        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+    }
+
+    public void addMessage(String sender, String message) {
+        String formattedMessage = sender + ": " + message + "\n";
+        chatArea.append(formattedMessage);
+        messages.add(formattedMessage);
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 }
