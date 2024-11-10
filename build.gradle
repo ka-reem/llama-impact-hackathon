@@ -6,7 +6,8 @@ plugins {
 group 'com.yourgame'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = '15'
+targetCompatibility = '15'
 
 repositories {
     mavenCentral()

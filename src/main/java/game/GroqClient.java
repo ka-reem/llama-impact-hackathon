@@ -21,7 +21,10 @@ public class GroqClient {
 
     public String generateResponse(String prompt) throws IOException {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("model", "llama3-70b-8192");  
+        // requestBody.addProperty("model", "llama3-70b-8192");   // rate limiting me 
+        requestBody.addProperty("model", "llama3-8b-8192");
+
+        
         
         JsonArray messages = new JsonArray();
         JsonObject message = new JsonObject();
