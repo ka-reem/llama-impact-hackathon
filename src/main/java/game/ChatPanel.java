@@ -12,11 +12,15 @@ public class ChatPanel extends JPanel {
     private JTextField playerInput;
     private String gameContext;
     private ArrayList<String> messages;
+    private TaxData taxData;  // Add this field
+    private PDFReader pdfReader;
 
     public ChatPanel() {
         String apiKey = loadApiKey();
         groqClient = new GroqClient(apiKey);
-        gameContext = "You are running an interactive game that focuses on teaching the user a specific topic. make sure to not change that topic unless directed to. keep responses under 50 words and make them fun.";
+        taxData = new TaxData();
+        pdfReader = new PDFReader();
+        gameContext = "You are a friendly tax advisor helping someone file their taxes. Ask one question at a time about their tax information. Keep responses under 50 words. Start by asking for their annual income.";
         
         setLayout(new BorderLayout(10, 10));
         setPreferredSize(new Dimension(300, 400));
@@ -37,8 +41,16 @@ public class ChatPanel extends JPanel {
         inputPanel.add(playerInput, BorderLayout.CENTER);
         inputPanel.add(submitButton, BorderLayout.EAST);
         
+        // Add PDF upload button
+        JButton uploadButton = new JButton("Upload Tax Document");
+        uploadButton.addActionListener(e -> uploadPDF());
+        
+        JPanel topPanel = new JPanel(new FlowLayout());
+        topPanel.add(uploadButton);
+        
         add(scrollPane, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
+        add(topPanel, BorderLayout.NORTH);
         
         submitButton.addActionListener(e -> processPlayerInput());
         playerInput.addActionListener(e -> processPlayerInput());
@@ -78,12 +90,89 @@ public class ChatPanel extends JPanel {
             playerInput.setText("");
             
             try {
-                String prompt = gameContext + "\nMessage: " + input + "\nRespond with the answer to the previous question or tell them if its right or wrong. Then as a teacher ask them another related question with a fun game and an answer:";
+                // Update prompt to handle tax-specific conversation
+                String prompt = gameContext + 
+                              "\nDocument content: " + (pdfReader.getContent() != null ? "Available" : "Not uploaded") +
+                              "\nCurrent tax information: " + taxData.toString() + 
+                              "\nUser response: " + input + 
+                              "\nAnalyze their answer against the tax document, verify information, and ask the next relevant question.";
+                
                 String response = groqClient.generateResponse(prompt);
-                appendToChat("\nChat Agent: " + response );
+                appendToChat("\nTax Advisor: " + response);
+                
+                // Parse the response and update tax data
+                updateTaxData(input, response);
+                
+                // Check if we have all needed tax information
+                if (taxData.isComplete()) {
+                    generateTaxForm();
+                }
             } catch (Exception e) {
                 appendToChat("\nError: " + e.getMessage());
             }
+        }
+    }
+
+    public void uploadPDF() {  // Change from private to public
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+            public boolean accept(File f) {
+                return f.getName().toLowerCase().endsWith(".pdf") || f.isDirectory();
+            }
+            public String getDescription() {
+                return "PDF Files (*.pdf)";
+            }
+        });
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                String content = pdfReader.readPDF(fileChooser.getSelectedFile());
+                gameContext = "You are a tax advisor. Using this tax document: " + content + 
+                            "\nAsk relevant questions to help fill out the tax form. Keep responses under 50 words.";
+                appendToChat("Tax Advisor: I've reviewed your tax document. Let me help you fill out the form.");
+            } catch (IOException ex) {
+                appendToChat("Error reading PDF: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void updateTaxData(String userInput, String aiResponse) {
+        // Simple parsing of numerical values from user input
+        if (aiResponse.toLowerCase().contains("income")) {
+            try {
+                double income = extractNumber(userInput);
+                taxData.setIncome(income);
+            } catch (NumberFormatException e) {
+                appendToChat("\nTax Advisor: Could you please provide your income as a number?");
+            }
+        }
+        // Add more parsing for other tax fields
+    }
+
+    private double extractNumber(String text) {
+        return Double.parseDouble(text.replaceAll("[^0-9.]", ""));
+    }
+
+    private void generateTaxForm() {
+        String taxForm = "=== Tax Form Summary ===\n" +
+                        "Annual Income: $" + taxData.getIncome() + "\n" +
+                        "Estimated Tax: $" + (taxData.getIncome() * 0.2) + "\n" +
+                        "==================";
+        appendToChat("\n" + taxForm);
+        
+        // Add option to save to file
+        JButton saveButton = new JButton("Save Tax Form");
+        saveButton.addActionListener(e -> saveTaxForm(taxForm));
+        add(saveButton, BorderLayout.NORTH);
+        revalidate();
+    }
+
+    private void saveTaxForm(String taxForm) {
+        try (PrintWriter out = new PrintWriter("tax_form.txt")) {
+            out.println(taxForm);
+            appendToChat("\nTax form saved to tax_form.txt");
+        } catch (IOException e) {
+            appendToChat("\nError saving tax form: " + e.getMessage());
         }
     }
 
@@ -97,5 +186,33 @@ public class ChatPanel extends JPanel {
         chatArea.append(formattedMessage);
         messages.add(formattedMessage);
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
+    }
+}
+
+// Add this new class in the same file or create a new file
+class TaxData {
+    private double income;
+    private boolean isComplete;
+    
+    public void setIncome(double income) {
+        this.income = income;
+        checkCompletion();
+    }
+    
+    public double getIncome() {
+        return income;
+    }
+    
+    private void checkCompletion() {
+        isComplete = income > 0; // Add more conditions as needed
+    }
+    
+    public boolean isComplete() {
+        return isComplete;
+    }
+    
+    @Override
+    public String toString() {
+        return "Income: $" + income;
     }
 }

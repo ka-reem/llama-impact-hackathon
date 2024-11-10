@@ -15,9 +15,11 @@ public class GameWorld extends JPanel implements Runnable {
     private Player t1;
     private final JFrame frame;  
     private long tick = 0;
-    private NPC npc;
+    private NPC npc1;  // rename from npc to npc1
+    private NPC npc2;  // add second NPC
     private Game game;  // Add reference to main game
-    private boolean isNearNPC = false;
+    private boolean isNearNPC1 = false;  // Add separate flags for each NPC
+    private boolean isNearNPC2 = false;
 
     public GameWorld(Game game) {
         this.game = game;
@@ -31,12 +33,23 @@ public class GameWorld extends JPanel implements Runnable {
                 this.tick++;
                 this.t1.update(); // update tank
                 
-                // Check NPC interaction
-                boolean currentlyNearNPC = npc.isPlayerInRange(t1);
-                if (currentlyNearNPC != isNearNPC) {
-                    isNearNPC = currentlyNearNPC;
-                    if (isNearNPC) {
-                        game.showNPCChat("Hello traveler! Would you like to chat?");
+                // Check both NPCs interaction
+                boolean nearNPC1 = npc1.isPlayerInRange(t1);
+                boolean nearNPC2 = npc2.isPlayerInRange(t1);
+                
+                // Handle NPC1 interaction
+                if (nearNPC1 != isNearNPC1) {
+                    isNearNPC1 = nearNPC1;
+                    if (isNearNPC1) {
+                        game.showNPCChat("Tax Advisor 1: Hello! I can help you file your personal income taxes.");
+                    }
+                }
+                
+                // Handle NPC2 interaction
+                if (nearNPC2 != isNearNPC2) {
+                    isNearNPC2 = nearNPC2;
+                    if (isNearNPC2) {
+                        game.showNPCChat("Tax Advisor 2: Greetings! Need help with business tax deductions?");
                     }
                 }
                 
@@ -94,18 +107,26 @@ public class GameWorld extends JPanel implements Runnable {
         PlayerControl tc1 = new PlayerControl(t1, KeyEvent.VK_W, KeyEvent.VK_S, KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_SPACE);
         this.frame.addKeyListener(tc1);  
 
-        // Create NPC
+        // Create first NPC (blue)
         try {
-            BufferedImage npcImg = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = npcImg.createGraphics();
+            BufferedImage npc1Img = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = npc1Img.createGraphics();
             g2d.setColor(Color.BLUE);
             g2d.fillOval(0, 0, 20, 20);
             g2d.dispose();
             
-            // Position NPC somewhere in the world
-            npc = new NPC(400, 400, npcImg);
+            npc1 = new NPC(400, 400, npc1Img);
+            
+            // Create second NPC (green)
+            BufferedImage npc2Img = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+            g2d = npc2Img.createGraphics();
+            g2d.setColor(Color.GREEN);
+            g2d.fillOval(0, 0, 20, 20);
+            g2d.dispose();
+            
+            npc2 = new NPC(600, 300, npc2Img);
         } catch (Exception ex) {
-            System.out.println("Error creating NPC: " + ex.getMessage());
+            System.out.println("Error creating NPCs: " + ex.getMessage());
         }
     }
 
@@ -117,7 +138,8 @@ public class GameWorld extends JPanel implements Runnable {
         buffer.setColor(Color.BLACK);
         buffer.fillRect(0, 0, GameConstants.GAME_SCREEN_WIDTH, GameConstants.GAME_SCREEN_HEIGHT);
         this.t1.drawImage(buffer);
-        this.npc.drawImage(buffer);  // Draw NPC
+        this.npc1.drawImage(buffer);  // Draw first NPC
+        this.npc2.drawImage(buffer);  // Draw second NPC
         g2.drawImage(world, 0, 0, null);
     }
 }
