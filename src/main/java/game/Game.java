@@ -34,7 +34,7 @@ public class Game extends JFrame {
     
     public Game() {
         // Set window properties
-        this.setTitle("Tank Game");
+        this.setTitle("Taxplorer");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // Added keyboard input
@@ -85,6 +85,15 @@ public class Game extends JFrame {
     private void toggleChat() {
         isChatVisible = !isChatVisible;
         chatPanel.setVisible(isChatVisible);
+        
+        // Reset player movement when toggling chat
+        gameWorld.resetPlayerMovement();
+        
+        // Request focus back to game when chat is closed
+        if (!isChatVisible) {
+            this.requestFocus();
+            gameWorld.requestFocusInWindow();
+        }
         revalidate();
         repaint();
     }
@@ -96,6 +105,9 @@ public class Game extends JFrame {
             toggleChat();
         }
         chatPanel.addMessage("NPC", message);
+        // Reset movement and keep game controls active
+        gameWorld.resetPlayerMovement();
+        gameWorld.requestFocusInWindow();
     }
 
     private void returnToMenu() {
@@ -104,8 +116,13 @@ public class Game extends JFrame {
         menu.display();
     }
 
+    // Add getter for gameWorld
+    public GameWorld getGameWorld() {
+        return gameWorld;
+    }
+
     public static void main(String[] args) {
         Game game = new Game();
         game.setVisible(true);
-    }
-}
+    }  // Add missing closing brace
+}  // Add missing closing brace for class

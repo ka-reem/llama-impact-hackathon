@@ -5,57 +5,117 @@ import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Properties;
+import javax.imageio.ImageIO;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import javax.swing.text.*;
+import javax.swing.text.View;
+import javax.swing.text.ViewFactory;
 
 public class ChatPanel extends JPanel {
+    // Add new style constants
+    private static final Color CHAT_BG_COLOR = new Color(245, 245, 245);
+    private static final Color USER_BUBBLE_COLOR = new Color(0, 132, 255, 230);
+    private static final Color BOT_BUBBLE_COLOR = new Color(240, 240, 240);
+    private static final Color USER_TEXT_COLOR = Color.WHITE;
+    private static final Color BOT_TEXT_COLOR = Color.BLACK;
+    private static final Font CHAT_FONT = new Font("Arial", Font.PLAIN, 14);
+    private static final int BUBBLE_RADIUS = 15;
+    private static final int BUBBLE_PADDING = 10;
+
     private GroqClient groqClient;
-    private JTextArea chatArea;
+    private JTextPane chatArea; // Change to JTextPane for better styling
     private JTextField playerInput;
     private String gameContext;
     private ArrayList<String> messages;
     private TaxData taxData;  // Add this field
     private PDFReader pdfReader;
+    // Add fields to track quest progress
+    private int currentQuest = 0;
+    private boolean[] questsCompleted = new boolean[5];
 
     public ChatPanel() {
+        setOpaque(true);
+        setBackground(CHAT_BG_COLOR);
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        initializeComponents();
+        setupListeners();
+        startChat();
+    }
+
+    private void initializeComponents() {
         String apiKey = loadApiKey();
         groqClient = new GroqClient(apiKey);
         taxData = new TaxData();
         pdfReader = new PDFReader();
-        gameContext = "You are a friendly tax advisor helping someone file their taxes. Ask one question at a time about their tax information. Keep responses under 50 words. Start by asking for their annual income.";
+        
+        // Initialize game context
+        gameContext = "You are a friendly tax guide in a desert town..."; // Your existing context string
         
         setLayout(new BorderLayout(10, 10));
         setPreferredSize(new Dimension(300, 400));
         messages = new ArrayList<>();
         
-        // Chat display area
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setLineWrap(true);
-        chatArea.setWrapStyleWord(true);
-        chatArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        // Chat area setup
+        chatArea = new JTextPane();
+        setupChatArea();
         JScrollPane scrollPane = new JScrollPane(chatArea);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         
-        // Player input area
+        // Input area setup
         playerInput = new JTextField();
-        JButton submitButton = new JButton("Submit");
+        playerInput.setFont(CHAT_FONT);
+        JButton submitButton = createStyledButton("Submit", new Color(0, 132, 255));
+        
         JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
         inputPanel.add(playerInput, BorderLayout.CENTER);
         inputPanel.add(submitButton, BorderLayout.EAST);
         
-        // Add PDF upload button
+        // Upload button setup
         JButton uploadButton = new JButton("Upload Tax Document");
-        uploadButton.addActionListener(e -> uploadPDF());
-        
         JPanel topPanel = new JPanel(new FlowLayout());
         topPanel.add(uploadButton);
         
+        // Add components
         add(scrollPane, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
         add(topPanel, BorderLayout.NORTH);
-        
-        submitButton.addActionListener(e -> processPlayerInput());
+    }
+
+    private void setupListeners() {
         playerInput.addActionListener(e -> processPlayerInput());
-        
-        startChat();
+        for (Component c : ((JPanel)getComponent(1)).getComponents()) {
+            if (c instanceof JButton) {
+                ((JButton)c).addActionListener(e -> {
+                    processPlayerInput();
+                    SwingUtilities.invokeLater(() -> {
+                        Window window = SwingUtilities.getWindowAncestor(this);
+                        if (window instanceof Game) {
+                            ((Game)window).getGameWorld().requestFocusInWindow();
+                        }
+                    });
+                });
+            }
+        }
+    }
+
+    private JButton createStyledButton(String text, Color color) {
+        JButton button = new JButton(text);
+        button.setBackground(color);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        return button;
+    }
+
+    private void setupChatArea() {
+        chatArea.setOpaque(true);
+        chatArea.setBackground(Color.WHITE);
+        chatArea.setEditable(false);
+        // Replace JTextArea methods with JTextPane equivalents
+        ((StyledDocument)chatArea.getDocument()).putProperty(DefaultEditorKit.EndOfLineStringProperty, "\n");
+        chatArea.setFont(CHAT_FONT);
     }
 
     private String loadApiKey() {
@@ -83,6 +143,25 @@ public class ChatPanel extends JPanel {
         }
     }
 
+    private String buildPrompt(String userInput) {
+        return String.format(
+            "You are a tax guide in the desert. Current context:\n" +
+            "Quest Progress: %d/5 completed\n" +
+            "Last location: %s\n" +
+            "User input: %s\n\n" +
+            "Instructions:\n" +
+            "1. Always connect tasks to desert landmarks\n" +
+            "2. Make tax learning fun and adventurous\n" +
+            "3. Give clear directions to next location\n" +
+            "4. Include tax facts with each quest\n" +
+            "5. Keep responses under 50 words\n" +
+            "6. Use emojis and engaging language",
+            getCompletedQuestCount(),
+            getCurrentLocation(),
+            userInput
+        );
+    }
+
     private void processPlayerInput() {
         String input = playerInput.getText().trim();
         if (!input.isEmpty()) {
@@ -90,26 +169,48 @@ public class ChatPanel extends JPanel {
             playerInput.setText("");
             
             try {
-                // Update prompt to handle tax-specific conversation
-                String prompt = gameContext + 
-                              "\nDocument content: " + (pdfReader.getContent() != null ? "Available" : "Not uploaded") +
-                              "\nCurrent tax information: " + taxData.toString() + 
-                              "\nUser response: " + input + 
-                              "\nAnalyze their answer against the tax document, verify information, and ask the next relevant question.";
-                
+                String prompt = buildPrompt(input);
                 String response = groqClient.generateResponse(prompt);
                 appendToChat("\nTax Advisor: " + response);
                 
-                // Parse the response and update tax data
-                updateTaxData(input, response);
-                
-                // Check if we have all needed tax information
-                if (taxData.isComplete()) {
-                    generateTaxForm();
+                // Check for quest completion keywords
+                if (response.toLowerCase().contains("completed") || 
+                    response.toLowerCase().contains("well done") ||
+                    response.toLowerCase().contains("congratulations")) {
+                    questsCompleted[currentQuest] = true;
+                    currentQuest++;
+                    updateQuestProgress();
                 }
             } catch (Exception e) {
                 appendToChat("\nError: " + e.getMessage());
             }
+        }
+    }
+
+    private void updateQuestProgress() {
+        int completed = getCompletedQuestCount();
+        if (completed == questsCompleted.length) {
+            appendToChat("🎉 Congratulations! You've completed all tax learning quests! " +
+                "You're now ready to handle your taxes with confidence! Would you like to review what you've learned?");
+        }
+    }
+
+    private int getCompletedQuestCount() {
+        int count = 0;
+        for (boolean quest : questsCompleted) {
+            if (quest) count++;
+        }
+        return count;
+    }
+
+    private String getCurrentLocation() {
+        switch (currentQuest) {
+            case 0: return "starting point";
+            case 1: return "near the hut";
+            case 2: return "by the water";
+            case 3: return "among cactuses";
+            case 4: return "rock formation";
+            default: return "on the path";
         }
     }
 
@@ -136,83 +237,25 @@ public class ChatPanel extends JPanel {
         }
     }
 
-    private void updateTaxData(String userInput, String aiResponse) {
-        // Simple parsing of numerical values from user input
-        if (aiResponse.toLowerCase().contains("income")) {
-            try {
-                double income = extractNumber(userInput);
-                taxData.setIncome(income);
-            } catch (NumberFormatException e) {
-                appendToChat("\nTax Advisor: Could you please provide your income as a number?");
-            }
-        }
-        // Add more parsing for other tax fields
-    }
-
-    private double extractNumber(String text) {
-        return Double.parseDouble(text.replaceAll("[^0-9.]", ""));
-    }
-
-    private void generateTaxForm() {
-        String taxForm = "=== Tax Form Summary ===\n" +
-                        "Annual Income: $" + taxData.getIncome() + "\n" +
-                        "Estimated Tax: $" + (taxData.getIncome() * 0.2) + "\n" +
-                        "==================";
-        appendToChat("\n" + taxForm);
-        
-        // Add option to save to file
-        JButton saveButton = new JButton("Save Tax Form");
-        saveButton.addActionListener(e -> saveTaxForm(taxForm));
-        add(saveButton, BorderLayout.NORTH);
-        revalidate();
-    }
-
-    private void saveTaxForm(String taxForm) {
-        try (PrintWriter out = new PrintWriter("tax_form.txt")) {
-            out.println(taxForm);
-            appendToChat("\nTax form saved to tax_form.txt");
-        } catch (IOException e) {
-            appendToChat("\nError saving tax form: " + e.getMessage());
-        }
-    }
-
     private void appendToChat(String text) {
-        chatArea.append(text + "\n");
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        try {
+            StyledDocument doc = chatArea.getStyledDocument();
+            doc.insertString(doc.getLength(), text + "\n", null);
+            chatArea.setCaretPosition(doc.getLength());
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
     }
 
     public void addMessage(String sender, String message) {
-        String formattedMessage = sender + ": " + message + "\n";
-        chatArea.append(formattedMessage);
-        messages.add(formattedMessage);
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
-    }
-}
-
-// Add this new class in the same file or create a new file
-class TaxData {
-    private double income;
-    private boolean isComplete;
-    
-    public void setIncome(double income) {
-        this.income = income;
-        checkCompletion();
-    }
-    
-    public double getIncome() {
-        return income;
-    }
-    
-    private void checkCompletion() {
-        isComplete = income > 0; // Add more conditions as needed
-    }
-    
-    public boolean isComplete() {
-        return isComplete;
-    }
-    
-    @Override
-    public String toString() {
-        return "Income: $" + income;
+        try {
+            StyledDocument doc = chatArea.getStyledDocument();
+            String formattedMessage = sender + ": " + message + "\n";
+            doc.insertString(doc.getLength(), formattedMessage, null);
+            messages.add(formattedMessage);
+            chatArea.setCaretPosition(doc.getLength());
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
     }
 }

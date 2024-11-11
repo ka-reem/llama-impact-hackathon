@@ -41,6 +41,19 @@ public class Player{
     public float getX() { return x; }
     public float getY() { return y; }
 
+    public float getWidth() {
+        return img.getWidth();
+    }
+
+    public float getHeight() {
+        return img.getHeight();
+    }
+
+    public void setPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
+    }
+
     void toggleUpPressed() {
         this.UpPressed = true;
     }
@@ -119,17 +132,18 @@ public class Player{
 
 
     private void checkBorder() {
+        // Update bounds checking to use map size instead of screen size
         if (x < 0) {
             x = 0;
         }
-        if (x >= GameConstants.GAME_SCREEN_WIDTH - this.img.getWidth()) {
-            x = GameConstants.GAME_SCREEN_WIDTH - this.img.getWidth();
+        if (x >= GameConstants.GAME_SCREEN_WIDTH * 2 - this.img.getWidth()) {
+            x = GameConstants.GAME_SCREEN_WIDTH * 2 - this.img.getWidth();
         }
         if (y < 0) {
             y = 0;
         }
-        if (y >= GameConstants.GAME_SCREEN_HEIGHT - this.img.getHeight()) {
-            y = GameConstants.GAME_SCREEN_HEIGHT - this.img.getHeight();
+        if (y >= GameConstants.GAME_SCREEN_HEIGHT * 2 - this.img.getHeight()) {
+            y = GameConstants.GAME_SCREEN_HEIGHT * 2 - this.img.getHeight();
         }
     }
 
@@ -150,5 +164,12 @@ public class Player{
         AffineTransform rotation = AffineTransform.getTranslateInstance(x, y);
         rotation.rotate(Math.toRadians(angle), this.img.getWidth() / 2.0, this.img.getHeight() / 2.0);
         g2d.drawImage(this.img, rotation, null);
+    }
+
+    public void resetMovement() {
+        this.UpPressed = false;
+        this.DownPressed = false;
+        this.LeftPressed = false;
+        this.RightPressed = false;
     }
 }

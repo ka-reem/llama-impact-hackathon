@@ -6,7 +6,8 @@ plugins {
 group 'com.yourgame'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 repositories {
     mavenCentral()
@@ -22,19 +23,38 @@ dependencies {
 }
 
 application {
-    mainClass = 'game.GameLauncher' // Update to match the new package structure
-    // mainClass = 'main.game.GameLauncher'
+    mainClass = 'game.Game'  // Update to point to the main Game class
 }
 
 jar {
     manifest {
-        attributes 'Main-Class': 'game.GameLauncher' // Update to match the new package structure
-        // attributes 'Main-Class': 'main.game.GameLauncher'
+        attributes(
+            'Main-Class': 'game.Game',
+            'Class-Path': configurations.runtimeClasspath.collect { it.getName() }.join(' ')
+        )
     }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // fix gradle build error related to duplicate jar files
+    
+    // Include all dependencies in the jar
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+    
+    // Include resources
+    from('src/main/resources') {
+        include 'map.png'
+        include 'tank1.png'
+        include 'config.properties'
+    }
+    
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Task to create a release directory with everything needed
+task release(type: Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    from configurations.runtimeClasspath
+    into "$buildDir/release"
 }
 
 
